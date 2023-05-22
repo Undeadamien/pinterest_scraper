@@ -1,4 +1,4 @@
-from os import startfile
+from os import startfile, mkdir
 from os.path import exists, join, dirname
 from random import sample
 
@@ -15,7 +15,9 @@ EMAIL: str = "tralaundeadamien@gmail.com"
 PASSWORD: str = "Polska2p"
 AMOUNT: int = 10
 
-assert exists(OUTPUT_FOLDER)
+if not exists(OUTPUT_FOLDER):
+    OUTPUT_FOLDER = join(dirname(__file__), "output")
+    mkdir(OUTPUT_FOLDER)
 
 
 def connect_to_pinterest(driver: Chrome, wait: WebDriverWait):
