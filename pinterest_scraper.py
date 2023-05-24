@@ -20,6 +20,25 @@ if not exists(OUTPUT_FOLDER):
     mkdir(OUTPUT_FOLDER)
 
 
+def connect_to_google(driver: Chrome, wait: WebDriverWait):
+
+    driver.get("https://accounts.google.com/")
+
+    # insert the email
+    wait.until(EC.element_to_be_clickable((By.NAME, "identifier")))
+    id_input = driver.find_element(By.NAME, "identifier")
+    id_input.send_keys(EMAIL)
+    id_input.send_keys(Keys.RETURN)
+
+    # insert the password
+    wait.until(EC.element_to_be_clickable((By.NAME, "Passwd")))
+    pass_input = driver.find_element(By.NAME, "Passwd")
+    pass_input.send_keys(PASSWORD)
+    pass_input.send_keys(Keys.RETURN)
+
+    wait.until(EC.presence_of_all_elements_located((By.XPATH, "//*")))
+
+
 def connect_to_pinterest(driver: Chrome, wait: WebDriverWait):
 
     driver.get("https://www.pinterest.com")
@@ -31,26 +50,7 @@ def connect_to_pinterest(driver: Chrome, wait: WebDriverWait):
         driver.refresh()
 
 
-def connect_to_google(driver: Chrome, wait: WebDriverWait):
-
-    driver.get("https://accounts.google.com/")
-
-    # insert the email
-    wait.until(EC.visibility_of_element_located((By.NAME, "identifier")))
-    id_input = driver.find_element(By.NAME, "identifier")
-    id_input.send_keys(EMAIL)
-    id_input.send_keys(Keys.RETURN)
-
-    # insert the password
-    wait.until(EC.visibility_of_element_located((By.NAME, "Passwd")))
-    pass_input = driver.find_element(By.NAME, "Passwd")
-    pass_input.send_keys(PASSWORD)
-    pass_input.send_keys(Keys.RETURN)
-
-    wait.until(EC.presence_of_all_elements_located((By.XPATH, "//*")))
-
-
-def fetched_srcs(driver: Chrome, wait: WebDriverWait, amount):
+def fetch_srcs(driver: Chrome, wait: WebDriverWait, amount):
 
     xpath = "//img[@srcset]"
     wait.until(EC.presence_of_all_elements_located((By.XPATH, xpath)))
@@ -95,7 +95,7 @@ def main():
     connect_to_google(driver, wait)
     connect_to_pinterest(driver, wait)
 
-    selected_images = fetched_srcs(driver, wait, AMOUNT)
+    selected_images = fetch_srcs(driver, wait, AMOUNT)
     save_images(selected_images, OUTPUT_FOLDER)
 
     startfile(OUTPUT_FOLDER)
