@@ -86,6 +86,15 @@ def save_images(image_urls: list[str], destination_folder: str):
         print(f"{name} saved")
 
 
+def insert_search(driver: Chrome, wait: WebDriverWait, key_words: str):
+
+    xpath = "//input[@name='searchBoxInput']"
+    wait.until(EC.presence_of_element_located((By.XPATH, xpath)))
+    search_box = driver.find_element(By.XPATH, xpath)
+    search_box.send_keys(key_words)
+    search_box.send_keys(Keys.RETURN)
+
+
 def main():
 
     driver = Chrome()
@@ -94,6 +103,7 @@ def main():
 
     connect_to_google(driver, wait)
     connect_to_pinterest(driver, wait)
+    insert_search(driver, wait, "photo reference")
 
     selected_images = fetch_srcs(driver, wait, AMOUNT)
     save_images(selected_images, OUTPUT_FOLDER)
