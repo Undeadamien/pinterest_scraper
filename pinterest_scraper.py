@@ -11,8 +11,8 @@ from undetected_chromedriver import Chrome
 
 
 OUTPUT_FOLDER: str = join(dirname(__file__), "output")
-EMAIL: str = "tralaundeadamien@gmail.com"
-PASSWORD: str = "Polska2p"
+EMAIL: str = ""
+PASSWORD: str = ""
 AMOUNT: int = 10
 
 if not exists(OUTPUT_FOLDER):
@@ -35,7 +35,8 @@ def connect_to_google(driver: Chrome, wait: WebDriverWait):
     pass_input = driver.find_element(By.NAME, "Passwd")
     pass_input.send_keys(PASSWORD)
     pass_input.send_keys(Keys.RETURN)
-
+    
+    # 
     wait.until(EC.presence_of_all_elements_located((By.XPATH, "//*")))
 
 
@@ -63,9 +64,10 @@ def fetch_srcs(driver: Chrome, wait: WebDriverWait, amount):
                  if link.strip().endswith(".jpg")]
         srcs.append(links[-1])
 
+    # reduce the number of images to return if the population is to small
     if amount > len(srcs):
         amount = len(srcs)
-
+        
     return sample(srcs, amount)
 
 
