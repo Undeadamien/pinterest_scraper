@@ -100,7 +100,14 @@ def main():
     connect_to_google(driver, wait)
     connect_to_pinterest(driver, wait)
     # insert_search(driver, wait, "photo reference")
+<<<<<<< HEAD
     save_images(fetch_srcs(driver, wait, AMOUNT), OUTPUT_FOLDER)
+=======
+
+    selected_images = fetch_srcs(driver, wait, AMOUNT)
+    save_images(selected_images, OUTPUT_FOLDER)
+
+>>>>>>> 90e0c668c4674f6597620b2c1a377cc3f470e051
     startfile(OUTPUT_FOLDER)
 
 
