@@ -16,12 +16,10 @@ PASSWORD: str = ""
 AMOUNT: int = 10
 
 if not exists(OUTPUT_FOLDER):
-    OUTPUT_FOLDER = join(dirname(__file__), "output")
-    mkdir(OUTPUT_FOLDER)
+    mkdir(join(dirname(__file__), "output"))
 
 
 def connect_to_google(driver: Chrome, wait: WebDriverWait):
-
     driver.get("https://accounts.google.com/")
 
     # insert the email
@@ -35,13 +33,11 @@ def connect_to_google(driver: Chrome, wait: WebDriverWait):
     pass_input = driver.find_element(By.NAME, "Passwd")
     pass_input.send_keys(PASSWORD)
     pass_input.send_keys(Keys.RETURN)
-    
-    # 
+
     wait.until(EC.presence_of_all_elements_located((By.XPATH, "//*")))
 
 
 def connect_to_pinterest(driver: Chrome, wait: WebDriverWait):
-
     driver.get("https://www.pinterest.com")
 
     try:  # assure that we are connect by checking the profile picture
@@ -52,7 +48,6 @@ def connect_to_pinterest(driver: Chrome, wait: WebDriverWait):
 
 
 def fetch_srcs(driver: Chrome, wait: WebDriverWait, amount):
-
     xpath = "//img[@srcset]"
     wait.until(EC.presence_of_all_elements_located((By.XPATH, xpath)))
     images = driver.find_elements(By.XPATH, xpath)
@@ -60,21 +55,22 @@ def fetch_srcs(driver: Chrome, wait: WebDriverWait, amount):
 
     # from the scrs we retrieve the src, to the largest jpg image
     for image in images:
-        links = [link.strip() for link in image.get_attribute("srcset").split()
-                 if link.strip().endswith(".jpg")]
+        links = [
+            link.strip()
+            for link in image.get_attribute("srcset").split()
+            if link.strip().endswith(".jpg")
+        ]
         srcs.append(links[-1])
 
     # reduce the number of images to return if the population is to small
     if amount > len(srcs):
         amount = len(srcs)
-        
+
     return sample(srcs, amount)
 
 
 def save_images(image_urls: list[str], destination_folder: str):
-
     for url in image_urls:
-
         name = url.split("/")[-1]
         path = f"{destination_folder}\\{name}"
 
@@ -89,7 +85,6 @@ def save_images(image_urls: list[str], destination_folder: str):
 
 
 def insert_search(driver: Chrome, wait: WebDriverWait, key_words: str):
-
     xpath = "//input[@name='searchBoxInput']"
     wait.until(EC.presence_of_element_located((By.XPATH, xpath)))
     search_box = driver.find_element(By.XPATH, xpath)
@@ -98,18 +93,14 @@ def insert_search(driver: Chrome, wait: WebDriverWait, key_words: str):
 
 
 def main():
-
     driver = Chrome()
     wait = WebDriverWait(driver, 60)
     driver.maximize_window()
 
     connect_to_google(driver, wait)
     connect_to_pinterest(driver, wait)
-    insert_search(driver, wait, "photo reference")
-
-    selected_images = fetch_srcs(driver, wait, AMOUNT)
-    save_images(selected_images, OUTPUT_FOLDER)
-
+    # insert_search(driver, wait, "photo reference")
+    save_images(fetch_srcs(driver, wait, AMOUNT), OUTPUT_FOLDER)
     startfile(OUTPUT_FOLDER)
 
 
