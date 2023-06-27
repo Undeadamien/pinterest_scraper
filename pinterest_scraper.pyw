@@ -1,24 +1,27 @@
+import os
+import pathlib
+import random
 import re
-from os import startfile
-from pathlib import Path
-from random import sample
 
 import requests
+import selenium.common.exceptions as SE
 import selenium.webdriver.support.expected_conditions as EC
-from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.wait import WebDriverWait
 from undetected_chromedriver import Chrome
 from urllib3.exceptions import ReadTimeoutError
 
-OUTPUT_FOLDER = Path(__file__).resolve().parent / "output"
-EMAIL = ""
-PASSWORD = ""
-AMOUNT = 5
+GOOGLE_URL: str = "https://accounts.google.com/"
+PINTEREST_URL: str = "https://www.pinterest.com"
 
-GOOGLE_URL = "https://accounts.google.com/"
-PINTEREST_URL = "https://www.pinterest.com"
+EMAIL: str = ""
+PASSWORD: str = ""
+
+OUTPUT_FOLDER: pathlib.Path = pathlib.Path(__file__).resolve().parent / "output"
+AMOUNT: int = 5
+SEARCH: str = ""
 
 
 def connect_to_google(
@@ -39,35 +42,53 @@ def connect_to_google(
 
 def connect_to_pinterest(driver: Chrome, wait: WebDriverWait) -> None:
     driver.get(PINTEREST_URL)
-
+    # wait for profile picture to load refresh if needed
     try:
         profile_picture_xpath = "//*[@class='hCL kVc L4E MIw']"
-        wait.until(EC.visibility_of_element_located((By.XPATH, profile_picture_xpath)))
-
-    except TimeoutException:
+        wait.until(EC.presence_of_element_located((By.XPATH, profile_picture_xpath)))
+    except SE.TimeoutException:
         driver.refresh()
+        wait.until(EC.presence_of_element_located((By.XPATH, profile_picture_xpath)))
 
 
-def fetch_image_srcs(driver: Chrome, wait: WebDriverWait, amount: int) -> list[str]:
+def fetch_image_srcs(
+    driver: Chrome,
+    wait: WebDriverWait,
+    action: ActionChains,
+    amount: int,
+    sample_size: int = 50,  # min size from which to sample
+) -> list[str]:
+    sample_size = max(amount, sample_size)
     image_xpath = "//img[@srcset]"
-    wait.until(EC.presence_of_all_elements_located((By.XPATH, image_xpath)))
-    images = driver.find_elements(By.XPATH, image_xpath)
+    srcs = set()
 
-    srcs = []
-
-    for image in images:
+    # collect links into srcs
+    while True:
         try:
-            string = image.get_property("srcset")
-            jpgs = re.findall(r"https[^ ]+jpg", string)
-            if jpgs:
-                srcs.append(jpgs[-1])
-        except StaleElementReferenceException:
+            wait.until(EC.presence_of_all_elements_located((By.XPATH, image_xpath)))
+            images = driver.find_elements(By.XPATH, f"{image_xpath}")
+            for image in images:
+                jpgs = re.findall(r"https[^ ]+jpg", image.get_property("srcset"))
+                srcs.add(jpgs[-1])
+                if len(srcs) >= sample_size:
+                    break
+            else:
+                action.move_to_element(images[-1]).perform()
+                continue
+            break
+
+        except SE.StaleElementReferenceException as exception:
+            print(exception)
+            continue
+        except SE.TimeoutException as exception:
+            print(exception)
             continue
 
-    return sample(srcs, min(amount, len(srcs)))
+    selected = random.sample(list(srcs), amount)
+    return selected
 
 
-def save_images(image_urls: list[str], destination_folder: str) -> None:
+def save_images(image_urls: list[str], destination_folder: pathlib.Path) -> None:
     for url in image_urls:
         name = url.split("/")[-1]
         path = destination_folder / name
@@ -75,16 +96,17 @@ def save_images(image_urls: list[str], destination_folder: str) -> None:
         try:
             with open(path, "wb") as file:
                 file.write(requests.get(url, timeout=20).content)
+            print(f"{name} saved")
+
         except ReadTimeoutError:
             continue
-
-        print(f"{name} saved")
 
 
 def insert_search(driver: Chrome, wait: WebDriverWait, key_words: str) -> None:
     search_box_xpath = "//input[@name='searchBoxInput']"
     wait.until(EC.presence_of_element_located((By.XPATH, search_box_xpath)))
     search_box = driver.find_element(By.XPATH, search_box_xpath)
+    search_box.click()
     search_box.send_keys(key_words)
     search_box.send_keys(Keys.RETURN)
 
@@ -100,14 +122,21 @@ def main() -> None:
         OUTPUT_FOLDER.mkdir()
 
     with initialize_web_driver() as driver:
-        wait = WebDriverWait(driver, 120)
+        wait = WebDriverWait(driver, 30)
+        action = ActionChains(driver)
+
         connect_to_google(driver, wait, EMAIL, PASSWORD)
         connect_to_pinterest(driver, wait)
-        image_srcs = fetch_image_srcs(driver, wait, AMOUNT)
+        if SEARCH:
+            insert_search(driver, wait, SEARCH)
+        image_srcs = fetch_image_srcs(driver, wait, action, AMOUNT)
         save_images(image_srcs, OUTPUT_FOLDER)
 
-    startfile(str(OUTPUT_FOLDER))
+    os.startfile(OUTPUT_FOLDER)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except OSError:
+        pass
